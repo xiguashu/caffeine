@@ -33,7 +33,15 @@ enum DisabledStatsCounter implements StatsCounter {
   public void recordHits(int count) {}
 
   @Override
+  public void recordHits(@NonNegative int count, double cost) {}
+
+  @Override
   public void recordMisses(int count) {}
+
+  @Override
+  public void recordMisses(@NonNegative int count, double cost) {
+
+  }
 
   @Override
   public void recordLoadSuccess(long loadTime) {}
@@ -49,6 +57,11 @@ enum DisabledStatsCounter implements StatsCounter {
   @Override
   public CacheStats snapshot() {
     return CacheStats.empty();
+  }
+
+  @Override
+  public void reset() {
+
   }
 
   @Override

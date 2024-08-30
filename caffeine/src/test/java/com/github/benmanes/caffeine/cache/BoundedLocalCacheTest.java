@@ -1479,9 +1479,9 @@ public final class BoundedLocalCacheTest {
   @CacheSpec(compute = Compute.SYNC, population = Population.FULL, maximumSize = Maximum.FULL)
   public void evictEntry_absent(BoundedLocalCache<Int, Int> cache, CacheContext context) {
     var replaced = cache.nodeFactory.newNode(context.firstKey(), cache.keyReferenceQueue(),
-        context.absentValue(), cache.valueReferenceQueue(), 0, context.ticker().read());
+        context.absentValue(), cache.valueReferenceQueue(), 0, 1, context.ticker().read());
     var absent = cache.nodeFactory.newNode(context.absentKey(), cache.keyReferenceQueue(),
-        context.absentValue(), cache.valueReferenceQueue(), 0, context.ticker().read());
+        context.absentValue(), cache.valueReferenceQueue(), 0, 1,  context.ticker().read());
     replaced.die();
     absent.die();
 
@@ -1574,7 +1574,7 @@ public final class BoundedLocalCacheTest {
   public void exceedsMaximumBufferSize_onRead(
       BoundedLocalCache<Int, Int> cache, CacheContext context) {
     var dummy = cache.nodeFactory.newNode(
-        new WeakKeyReference<>(null, null), null, null, 1, 0);
+        new WeakKeyReference<>(null, null), null, null, 1, 1, 0);
     cache.frequencySketch().ensureCapacity(1);
 
     var buffer = cache.readBuffer;

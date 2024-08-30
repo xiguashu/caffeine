@@ -62,6 +62,12 @@ public final class AddMaximum extends NodeRule {
     context.constructorByKey.addStatement("this.$N = $N", "weight", "weight");
     context.constructorByKeyRef.addStatement("this.$N = $N", "weight", "weight");
 
+    context.nodeSubtype.addField(double.class, "cost")
+        .addMethod(newGetter(Strength.STRONG, TypeName.DOUBLE, "cost", Visibility.VOLATILE))
+        .addMethod(newSetter(TypeName.DOUBLE, "cost", Visibility.VOLATILE));
+    context.constructorByKey.addStatement("this.$N = $N", "cost", "cost");
+    context.constructorByKeyRef.addStatement("this.$N = $N", "cost", "cost");
+
     context.nodeSubtype.addField(int.class, "policyWeight")
         .addMethod(newGetter(Strength.STRONG, TypeName.INT, "policyWeight", Visibility.VOLATILE))
         .addMethod(newSetter(TypeName.INT, "policyWeight", Visibility.VOLATILE));

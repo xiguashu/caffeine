@@ -152,6 +152,11 @@ interface LocalManualCache<K, V> extends Cache<K, V> {
   }
 
   @Override
+  default void resetStats() {
+    cache().statsCounter().reset();
+  }
+
+  @Override
   default ConcurrentMap<K, V> asMap() {
     return cache();
   }

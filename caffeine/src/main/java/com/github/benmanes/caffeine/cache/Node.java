@@ -66,7 +66,6 @@ abstract class Node<K, V> implements AccessOrder<Node<K, V>>, WriteOrder<Node<K,
 
   /** Returns the weight of this entry from the entry's perspective. */
   @NonNegative
-  @GuardedBy("this")
   public int getWeight() {
     return 1;
   }
@@ -74,6 +73,15 @@ abstract class Node<K, V> implements AccessOrder<Node<K, V>>, WriteOrder<Node<K,
   /** Sets the weight from the entry's perspective. */
   @GuardedBy("this")
   public void setWeight(@NonNegative int weight) {}
+
+  /** Returns the weight of this entry from the entry's perspective. */
+  @NonNegative
+  public double getCost() {
+    return 1;
+  }
+
+  /** Sets the weight from the entry's perspective. */
+  public void setCost(@NonNegative double cost) {}
 
   /** Returns the weight of this entry from the policy's perspective. */
   @NonNegative

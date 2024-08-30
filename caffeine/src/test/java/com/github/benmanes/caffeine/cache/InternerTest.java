@@ -143,7 +143,7 @@ public final class InternerTest extends TestCase {
   public void factory() {
     assertThat(Interned.FACTORY.newReferenceKey(new Object(), null))
         .isInstanceOf(WeakKeyEqualsReference.class);
-    assertThat(Interned.FACTORY.newNode(null, null, null, 1, 1))
+    assertThat(Interned.FACTORY.newNode(null, null, null, 1, 1, 1))
         .isInstanceOf(Interned.class);
 
     var builder = Caffeine.newBuilder();

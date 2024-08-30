@@ -79,15 +79,16 @@ public final class AddConstructors extends NodeRule {
     constructor.addParameter(valueSpec);
     constructor.addParameter(valueRefQueueSpec);
     constructor.addParameter(int.class, "weight");
+    constructor.addParameter(double.class, "cost");
     constructor.addParameter(long.class, "now");
   }
 
   private void callSiblingConstructor() {
     if (isStrongKeys()) {
-      context.constructorByKey.addStatement("this(key, value, valueReferenceQueue, weight, now)");
+      context.constructorByKey.addStatement("this(key, value, valueReferenceQueue, weight, cost, now)");
     } else {
       context.constructorByKey.addStatement(
-          "this(new $T($N, $N), value, valueReferenceQueue, weight, now)", keyReferenceType(),
+          "this(new $T($N, $N), value, valueReferenceQueue, weight, cost, now)", keyReferenceType(),
           "key", "keyReferenceQueue");
     }
   }
@@ -107,11 +108,11 @@ public final class AddConstructors extends NodeRule {
 
   private void callParentByKey() {
     context.constructorByKey.addStatement(
-        "super(key, keyReferenceQueue, value, valueReferenceQueue, weight, now)");
+        "super(key, keyReferenceQueue, value, valueReferenceQueue, weight, cost, now)");
   }
 
   private void callParentByKeyRef() {
     context.constructorByKeyRef.addStatement(
-        "super(keyReference, value, valueReferenceQueue, weight, now)");
+        "super(keyReference, value, valueReferenceQueue, weight, cost, now)");
   }
 }

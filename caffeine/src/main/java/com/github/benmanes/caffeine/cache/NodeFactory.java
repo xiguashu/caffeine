@@ -55,11 +55,11 @@ interface NodeFactory<K, V> {
 
   /** Returns a node optimized for the specified features. */
   Node<K, V> newNode(K key, ReferenceQueue<K> keyReferenceQueue, V value,
-      ReferenceQueue<V> valueReferenceQueue, int weight, long now);
+      ReferenceQueue<V> valueReferenceQueue, int weight, double cost, long now);
 
   /** Returns a node optimized for the specified features. */
   Node<K, V> newNode(Object keyReference, V value,
-      ReferenceQueue<V> valueReferenceQueue, int weight, long now);
+      ReferenceQueue<V> valueReferenceQueue, int weight, double cost, long now);
 
   /**
    * Returns a key suitable for inserting into the cache. If the cache holds keys strongly then the

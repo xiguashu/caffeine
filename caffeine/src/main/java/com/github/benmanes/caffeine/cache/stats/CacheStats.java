@@ -62,26 +62,30 @@ import com.google.errorprone.annotations.Immutable;
  */
 @Immutable
 public final class CacheStats {
-  private static final CacheStats EMPTY_STATS = CacheStats.of(0L, 0L, 0L, 0L, 0L, 0L, 0L);
+  private static final CacheStats EMPTY_STATS = CacheStats.of(0L, 0L, 0, 0, 0L, 0L, 0L, 0L, 0L);
 
   private final long hitCount;
   private final long missCount;
+  private final double hitCost;
+  private final double missCost;
   private final long loadSuccessCount;
   private final long loadFailureCount;
   private final long totalLoadTime;
   private final long evictionCount;
   private final long evictionWeight;
 
-  private CacheStats(@NonNegative long hitCount, @NonNegative long missCount,
-      @NonNegative long loadSuccessCount, @NonNegative long loadFailureCount,
-      @NonNegative long totalLoadTime, @NonNegative long evictionCount,
-      @NonNegative long evictionWeight) {
+  private CacheStats(@NonNegative long hitCount, @NonNegative long missCount, @NonNegative double hitCost, @NonNegative double missCost,
+                     @NonNegative long loadSuccessCount, @NonNegative long loadFailureCount,
+                     @NonNegative long totalLoadTime, @NonNegative long evictionCount,
+                     @NonNegative long evictionWeight) {
     if ((hitCount < 0) || (missCount < 0) || (loadSuccessCount < 0) || (loadFailureCount < 0)
-        || (totalLoadTime < 0) || (evictionCount < 0) || (evictionWeight < 0)) {
+      || (totalLoadTime < 0) || (evictionCount < 0) || (evictionWeight < 0)) {
       throw new IllegalArgumentException();
     }
     this.hitCount = hitCount;
     this.missCount = missCount;
+    this.hitCost = hitCost;
+    this.missCost = missCost;
     this.loadSuccessCount = loadSuccessCount;
     this.loadFailureCount = loadFailureCount;
     this.totalLoadTime = totalLoadTime;
@@ -92,23 +96,23 @@ public final class CacheStats {
   /**
    * Returns a {@code CacheStats} representing the specified statistics.
    *
-   * @param hitCount the number of cache hits
-   * @param missCount the number of cache misses
+   * @param hitCount         the number of cache hits
+   * @param missCount        the number of cache misses
    * @param loadSuccessCount the number of successful cache loads
    * @param loadFailureCount the number of failed cache loads
-   * @param totalLoadTime the total load time (success and failure)
-   * @param evictionCount the number of entries evicted from the cache
-   * @param evictionWeight the sum of weights of entries evicted from the cache
+   * @param totalLoadTime    the total load time (success and failure)
+   * @param evictionCount    the number of entries evicted from the cache
+   * @param evictionWeight   the sum of weights of entries evicted from the cache
    * @return a {@code CacheStats} representing the specified statistics
    */
-  public static CacheStats of(@NonNegative long hitCount, @NonNegative long missCount,
-      @NonNegative long loadSuccessCount, @NonNegative long loadFailureCount,
-      @NonNegative long totalLoadTime, @NonNegative long evictionCount,
-      @NonNegative long evictionWeight) {
+  public static CacheStats of(@NonNegative long hitCount, @NonNegative long missCount, @NonNegative double hitCost, @NonNegative double missCost,
+                              @NonNegative long loadSuccessCount, @NonNegative long loadFailureCount,
+                              @NonNegative long totalLoadTime, @NonNegative long evictionCount,
+                              @NonNegative long evictionWeight) {
     // Many parameters of the same type in a row is a bad thing, but this class is not constructed
     // by end users and is too fine-grained for a builder.
-    return new CacheStats(hitCount, missCount, loadSuccessCount,
-        loadFailureCount, totalLoadTime, evictionCount, evictionWeight);
+    return new CacheStats(hitCount, missCount, hitCost, missCost, loadSuccessCount,
+      loadFailureCount, totalLoadTime, evictionCount, evictionWeight);
   }
 
   /**
@@ -155,6 +159,14 @@ public final class CacheStats {
     return (requestCount == 0) ? 1.0 : (double) hitCount / requestCount;
   }
 
+  public double costHitRate() {
+    double totalCost = missCost + hitCost;
+    if (totalCost == 0) {
+      return 0;
+    }
+    return hitCost / totalCost;
+  }
+
   /**
    * Returns the number of times {@link Cache} lookup methods have returned an uncached (newly
    * loaded) value, or null. Multiple concurrent calls to {@link Cache} lookup methods on an absent
@@ -162,7 +174,7 @@ public final class CacheStats {
    * operation.
    *
    * @return the number of times {@link Cache} lookup methods have returned an uncached (newly
-   *         loaded) value, or null
+   * loaded) value, or null
    */
   public @NonNegative long missCount() {
     return missCount;
@@ -287,6 +299,14 @@ public final class CacheStats {
     return evictionWeight;
   }
 
+  public double hitCost() {
+    return hitCost;
+  }
+
+  public double missCost() {
+    return missCost;
+  }
+
   /**
    * Returns a new {@code CacheStats} representing the difference between this {@code CacheStats}
    * and {@code other}. Negative values, which aren't supported by {@code CacheStats} will be
@@ -297,13 +317,15 @@ public final class CacheStats {
    */
   public CacheStats minus(CacheStats other) {
     return CacheStats.of(
-        Math.max(0L, hitCount - other.hitCount),
-        Math.max(0L, missCount - other.missCount),
-        Math.max(0L, loadSuccessCount - other.loadSuccessCount),
-        Math.max(0L, loadFailureCount - other.loadFailureCount),
-        Math.max(0L, totalLoadTime - other.totalLoadTime),
-        Math.max(0L, evictionCount - other.evictionCount),
-        Math.max(0L, evictionWeight - other.evictionWeight));
+      Math.max(0L, hitCount - other.hitCount),
+      Math.max(0L, missCount - other.missCount),
+      Math.max(0d, hitCost - other.hitCost),
+      Math.max(0d, missCost - other.missCost),
+      Math.max(0L, loadSuccessCount - other.loadSuccessCount),
+      Math.max(0L, loadFailureCount - other.loadFailureCount),
+      Math.max(0L, totalLoadTime - other.totalLoadTime),
+      Math.max(0L, evictionCount - other.evictionCount),
+      Math.max(0L, evictionWeight - other.evictionWeight));
   }
 
   /**
@@ -319,13 +341,15 @@ public final class CacheStats {
    */
   public CacheStats plus(CacheStats other) {
     return CacheStats.of(
-        saturatedAdd(hitCount, other.hitCount),
-        saturatedAdd(missCount, other.missCount),
-        saturatedAdd(loadSuccessCount, other.loadSuccessCount),
-        saturatedAdd(loadFailureCount, other.loadFailureCount),
-        saturatedAdd(totalLoadTime, other.totalLoadTime),
-        saturatedAdd(evictionCount, other.evictionCount),
-        saturatedAdd(evictionWeight, other.evictionWeight));
+      saturatedAdd(hitCount, other.hitCount),
+      saturatedAdd(missCount, other.missCount),
+      hitCost + other.hitCost,
+      missCost + other.missCost,
+      saturatedAdd(loadSuccessCount, other.loadSuccessCount),
+      saturatedAdd(loadFailureCount, other.loadFailureCount),
+      saturatedAdd(totalLoadTime, other.totalLoadTime),
+      saturatedAdd(evictionCount, other.evictionCount),
+      saturatedAdd(evictionWeight, other.evictionWeight));
   }
 
   /**
@@ -347,7 +371,7 @@ public final class CacheStats {
   @Override
   public int hashCode() {
     return Objects.hash(hitCount, missCount, loadSuccessCount,
-        loadFailureCount, totalLoadTime, evictionCount, evictionWeight);
+      loadFailureCount, totalLoadTime, evictionCount, evictionWeight);
   }
 
   @Override
@@ -359,24 +383,26 @@ public final class CacheStats {
     }
     CacheStats other = (CacheStats) o;
     return hitCount == other.hitCount
-        && missCount == other.missCount
-        && loadSuccessCount == other.loadSuccessCount
-        && loadFailureCount == other.loadFailureCount
-        && totalLoadTime == other.totalLoadTime
-        && evictionCount == other.evictionCount
-        && evictionWeight == other.evictionWeight;
+      && missCount == other.missCount
+      && loadSuccessCount == other.loadSuccessCount
+      && loadFailureCount == other.loadFailureCount
+      && totalLoadTime == other.totalLoadTime
+      && evictionCount == other.evictionCount
+      && evictionWeight == other.evictionWeight;
   }
 
   @Override
   public String toString() {
     return getClass().getSimpleName() + '{'
-        + "hitCount=" + hitCount + ", "
-        + "missCount=" + missCount + ", "
-        + "loadSuccessCount=" + loadSuccessCount + ", "
-        + "loadFailureCount=" + loadFailureCount + ", "
-        + "totalLoadTime=" + totalLoadTime + ", "
-        + "evictionCount=" + evictionCount + ", "
-        + "evictionWeight=" + evictionWeight
-        + '}';
+      + "hitCount=" + hitCount + ", "
+      + "missCount=" + missCount + ", "
+      + "hitCost=" + hitCost + ", "
+      + "missCost=" + missCost + ", "
+      + "loadSuccessCount=" + loadSuccessCount + ", "
+      + "loadFailureCount=" + loadFailureCount + ", "
+      + "totalLoadTime=" + totalLoadTime + ", "
+      + "evictionCount=" + evictionCount + ", "
+      + "evictionWeight=" + evictionWeight
+      + '}';
   }
 }

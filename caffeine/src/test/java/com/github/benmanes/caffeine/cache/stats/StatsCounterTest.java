@@ -39,7 +39,8 @@ import com.github.valfirst.slf4jtest.TestLoggerFactory;
  */
 public final class StatsCounterTest {
 
-  @BeforeMethod @AfterMethod
+  @BeforeMethod
+  @AfterMethod
   public void reset() {
     TestLoggerFactory.clear();
   }
@@ -52,8 +53,8 @@ public final class StatsCounterTest {
     counter.recordEviction(1, RemovalCause.SIZE);
     counter.recordLoadSuccess(1);
     counter.recordLoadFailure(1);
-    assertThat(counter.snapshot()).isEqualTo(CacheStats.of(0, 0, 0, 0, 0, 0, 0));
-    assertThat(counter.toString()).isEqualTo(CacheStats.of(0, 0, 0, 0, 0, 0, 0).toString());
+    assertThat(counter.snapshot()).isEqualTo(CacheStats.of(0, 0, 0, 0, 0, 0, 0, 0, 0));
+    assertThat(counter.toString()).isEqualTo(CacheStats.of(0, 0, 0, 0, 0, 0, 0, 0, 0).toString());
 
     for (var type : DisabledStatsCounter.values()) {
       assertThat(DisabledStatsCounter.valueOf(type.name())).isEqualTo(counter);
@@ -68,13 +69,13 @@ public final class StatsCounterTest {
     counter.recordEviction(10, RemovalCause.SIZE);
     counter.recordLoadSuccess(1);
     counter.recordLoadFailure(1);
-    var expected = CacheStats.of(1, 1, 1, 1, 2, 1, 10);
+    var expected = CacheStats.of(1, 1, 1, 1, 1, 1, 2, 1, 10);
     assertThat(counter.snapshot()).isEqualTo(expected);
     assertThat(counter.toString()).isEqualTo(expected.toString());
     assertThat(counter.snapshot().toString()).isEqualTo(expected.toString());
 
     counter.incrementBy(counter);
-    assertThat(counter.snapshot()).isEqualTo(CacheStats.of(2, 2, 2, 2, 4, 2, 20));
+    assertThat(counter.snapshot()).isEqualTo(CacheStats.of(2, 2, 2, 2, 2, 2, 4, 2, 20));
   }
 
   @Test
@@ -87,7 +88,7 @@ public final class StatsCounterTest {
       counter.recordLoadSuccess(1);
       counter.recordLoadFailure(1);
     });
-    assertThat(counter.snapshot()).isEqualTo(CacheStats.of(5, 5, 5, 5, 10, 5, 50));
+    assertThat(counter.snapshot()).isEqualTo(CacheStats.of(5, 5, 5, 5, 5, 5, 10, 5, 50));
   }
 
   @Test
@@ -98,7 +99,7 @@ public final class StatsCounterTest {
     counter.recordEviction(10, RemovalCause.SIZE);
     counter.recordLoadSuccess(1);
     counter.recordLoadFailure(1);
-    var expected = CacheStats.of(1, 1, 1, 1, 2, 1, 10);
+    var expected = CacheStats.of(1, 1, 1, 1, 1, 1, 2, 1, 10);
     assertThat(counter.snapshot()).isEqualTo(expected);
     assertThat(counter.toString()).isEqualTo(expected.toString());
     assertThat(counter.snapshot().toString()).isEqualTo(expected.toString());
@@ -136,11 +137,11 @@ public final class StatsCounterTest {
     verify(statsCounter).recordEviction(10, RemovalCause.SIZE);
 
     assertThat(logEvents()
-        .withMessage("Exception thrown by stats counter")
-        .withThrowable(NullPointerException.class)
-        .withLevel(WARN)
-        .exclusively())
-        .hasSize(6);
+      .withMessage("Exception thrown by stats counter")
+      .withThrowable(NullPointerException.class)
+      .withLevel(WARN)
+      .exclusively())
+      .hasSize(6);
   }
 
   @Test

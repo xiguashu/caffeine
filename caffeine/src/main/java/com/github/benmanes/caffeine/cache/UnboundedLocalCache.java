@@ -1045,6 +1045,11 @@ final class UnboundedLocalCache<K, V> implements LocalCache<K, V> {
           : policy;
     }
 
+    @Override
+    public void resetStats() {
+      cache.statsCounter.reset();
+    }
+
     @SuppressWarnings("UnusedVariable")
     private void readObject(ObjectInputStream stream) throws InvalidObjectException {
       throw new InvalidObjectException("Proxy required");

@@ -21,6 +21,7 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 
 import com.github.benmanes.caffeine.cache.RemovalCause;
+import org.checkerframework.checker.index.qual.NonNegative;
 
 /**
  * A {@link StatsCounter} implementation that suppresses and logs any exception thrown by the
@@ -48,9 +49,27 @@ final class GuardedStatsCounter implements StatsCounter {
   }
 
   @Override
+  public void recordHits(@NonNegative int count, double cost) {
+    try {
+      delegate.recordHits(count, cost);
+    } catch (Throwable t) {
+      logger.log(Level.WARNING, "Exception thrown by stats counter", t);
+    }
+  }
+
+  @Override
   public void recordMisses(int count) {
     try {
       delegate.recordMisses(count);
+    } catch (Throwable t) {
+      logger.log(Level.WARNING, "Exception thrown by stats counter", t);
+    }
+  }
+
+  @Override
+  public void recordMisses(@NonNegative int count, double cost) {
+    try {
+      delegate.recordMisses(count, cost);
     } catch (Throwable t) {
       logger.log(Level.WARNING, "Exception thrown by stats counter", t);
     }
@@ -91,6 +110,15 @@ final class GuardedStatsCounter implements StatsCounter {
     } catch (Throwable t) {
       logger.log(Level.WARNING, "Exception thrown by stats counter", t);
       return CacheStats.empty();
+    }
+  }
+
+  @Override
+  public void reset() {
+    try {
+      delegate.reset();
+    } catch (Throwable t) {
+      logger.log(Level.WARNING, "Exception thrown by stats counter", t);
     }
   }
 

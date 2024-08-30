@@ -37,6 +37,8 @@ public interface StatsCounter {
    */
   void recordHits(@NonNegative int count);
 
+  void recordHits(@NonNegative int count, double cost);
+
   /**
    * Records cache misses. This should be called when a cache request returns a value that was not
    * found in the cache. This method should be called by the loading thread, as well as by threads
@@ -48,6 +50,8 @@ public interface StatsCounter {
    * @param count the number of misses to record
    */
   void recordMisses(@NonNegative int count);
+
+  void recordMisses(@NonNegative int count, double cost);
 
   /**
    * Records the successful load of a new entry. This method should be called when a cache request
@@ -113,4 +117,6 @@ public interface StatsCounter {
         ? statsCounter
         : new GuardedStatsCounter(statsCounter);
   }
+
+  void reset();
 }

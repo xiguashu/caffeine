@@ -637,6 +637,11 @@ interface LocalAsyncCache<K, V> extends AsyncCache<K, V> {
     }
 
     @Override
+    public void resetStats() {
+      asyncCache().cache().statsCounter().reset();
+    }
+
+    @Override
     public ConcurrentMap<K, V> asMap() {
       return (asMapView == null) ? (asMapView = new AsMapView<>(asyncCache().cache())) : asMapView;
     }

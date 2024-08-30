@@ -17,10 +17,12 @@ package com.github.benmanes.caffeine.cache.stats;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.concurrent.atomic.DoubleAdder;
 import java.util.concurrent.atomic.LongAdder;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.RemovalCause;
+import org.checkerframework.checker.index.qual.NonNegative;
 
 /**
  * A thread-safe {@link StatsCounter} implementation for use by {@link Cache} implementors.
@@ -35,6 +37,8 @@ public final class ConcurrentStatsCounter implements StatsCounter {
   private final LongAdder totalLoadTime;
   private final LongAdder evictionCount;
   private final LongAdder evictionWeight;
+  private final DoubleAdder hitCost;
+  private final DoubleAdder missCost;
 
   /**
    * Constructs an instance with all counts initialized to zero.
@@ -47,6 +51,8 @@ public final class ConcurrentStatsCounter implements StatsCounter {
     totalLoadTime = new LongAdder();
     evictionCount = new LongAdder();
     evictionWeight = new LongAdder();
+    hitCost = new DoubleAdder();
+    missCost = new DoubleAdder();
   }
 
   @Override
@@ -55,8 +61,20 @@ public final class ConcurrentStatsCounter implements StatsCounter {
   }
 
   @Override
+  public void recordHits(@NonNegative int count, double cost) {
+    hitCount.add(count);
+    hitCost.add(cost);
+  }
+
+  @Override
   public void recordMisses(int count) {
     missCount.add(count);
+  }
+
+  @Override
+  public void recordMisses(@NonNegative int count, double cost) {
+    missCount.add(count);
+    missCost.add(cost);
   }
 
   @Override
@@ -81,16 +99,33 @@ public final class ConcurrentStatsCounter implements StatsCounter {
   @Override
   public CacheStats snapshot() {
     return CacheStats.of(
-        negativeToMaxValue(hitCount.sum()),
-        negativeToMaxValue(missCount.sum()),
-        negativeToMaxValue(loadSuccessCount.sum()),
-        negativeToMaxValue(loadFailureCount.sum()),
-        negativeToMaxValue(totalLoadTime.sum()),
-        negativeToMaxValue(evictionCount.sum()),
-        negativeToMaxValue(evictionWeight.sum()));
+      negativeToMaxValue(hitCount.sum()),
+      negativeToMaxValue(missCount.sum()),
+      hitCost.doubleValue(),
+      missCost.doubleValue(),
+      negativeToMaxValue(loadSuccessCount.sum()),
+      negativeToMaxValue(loadFailureCount.sum()),
+      negativeToMaxValue(totalLoadTime.sum()),
+      negativeToMaxValue(evictionCount.sum()),
+      negativeToMaxValue(evictionWeight.sum()));
   }
 
-  /** Returns {@code value}, if non-negative. Otherwise, returns {@link Long#MAX_VALUE}. */
+  @Override
+  public void reset() {
+    hitCount.reset();
+    missCount.reset();
+    loadSuccessCount.reset();
+    loadFailureCount.reset();
+    totalLoadTime.reset();
+    evictionCount.reset();
+    evictionWeight.reset();
+    hitCost.reset();
+    missCost.reset();
+  }
+
+  /**
+   * Returns {@code value}, if non-negative. Otherwise, returns {@link Long#MAX_VALUE}.
+   */
   private static long negativeToMaxValue(long value) {
     return (value >= 0) ? value : Long.MAX_VALUE;
   }
@@ -104,6 +139,8 @@ public final class ConcurrentStatsCounter implements StatsCounter {
     CacheStats otherStats = other.snapshot();
     hitCount.add(otherStats.hitCount());
     missCount.add(otherStats.missCount());
+    hitCost.add(otherStats.hitCost());
+    missCost.add(otherStats.missCost());
     loadSuccessCount.add(otherStats.loadSuccessCount());
     loadFailureCount.add(otherStats.loadFailureCount());
     totalLoadTime.add(otherStats.totalLoadTime());

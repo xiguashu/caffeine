@@ -142,11 +142,11 @@ final class Interned<K, V> extends Node<K, V> implements NodeFactory<K, V> {
     return Objects.equals(value, getValue());
   }
   @Override public Node<K, V> newNode(K key, ReferenceQueue<K> keyReferenceQueue,
-      V value, ReferenceQueue<V> valueReferenceQueue, int weight, long now) {
+      V value, ReferenceQueue<V> valueReferenceQueue, int weight, double cost, long now) {
     return new Interned<>(new WeakKeyEqualsReference<>(key, keyReferenceQueue));
   }
   @Override public Node<K, V> newNode(Object keyReference, V value,
-      ReferenceQueue<V> valueReferenceQueue, int weight, long now) {
+      ReferenceQueue<V> valueReferenceQueue, int weight, double cost, long now) {
     return new Interned<>((Reference<K>) keyReference);
   }
   @Override public Object newLookupKey(Object key) {

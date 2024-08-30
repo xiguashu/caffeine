@@ -72,10 +72,14 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
  */
 @SuppressWarnings("serial")
 public final class GuavaCacheFromContext {
-  private GuavaCacheFromContext() {}
+  private GuavaCacheFromContext() {
+  }
+
   private static final ThreadLocal<Throwable> error = new ThreadLocal<>();
 
-  /** Returns a Guava-backed cache. */
+  /**
+   * Returns a Guava-backed cache.
+   */
   @SuppressWarnings("CheckReturnValue")
   public static <K, V> Cache<K, V> newGuavaCache(CacheContext context) {
     checkState(!context.isAsync(), "Guava caches are synchronous only");
@@ -122,9 +126,9 @@ public final class GuavaCacheFromContext {
     }
     if (context.removalListenerType() != Listener.DISABLED) {
       boolean translateZeroExpire = (context.expireAfterAccess() == Expire.IMMEDIATELY) ||
-          (context.expireAfterWrite() == Expire.IMMEDIATELY);
+        (context.expireAfterWrite() == Expire.IMMEDIATELY);
       builder.removalListener(new GuavaRemovalListener<>(
-          translateZeroExpire, context.removalListener()));
+        translateZeroExpire, context.removalListener()));
     }
     if (context.loader() == Loader.DISABLED) {
       context.cache = new GuavaCache<>(builder.<Int, Int>build(), context);
@@ -199,7 +203,7 @@ public final class GuavaCacheFromContext {
 
     @Override
     public Map<K, V> getAll(Iterable<? extends K> keys, Function<? super Set<? extends K>,
-        ? extends Map<? extends K, ? extends V>> mappingFunction) {
+      ? extends Map<? extends K, ? extends V>> mappingFunction) {
       keys.forEach(Objects::requireNonNull);
       requireNonNull(mappingFunction);
 
@@ -269,8 +273,8 @@ public final class GuavaCacheFromContext {
     @Override
     public CacheStats stats() {
       var stats = statsCounter.snapshot().plus(cache.stats());
-      return CacheStats.of(stats.hitCount(), stats.missCount(), stats.loadSuccessCount(),
-          stats.loadExceptionCount(), stats.totalLoadTime(), stats.evictionCount(), 0);
+      return CacheStats.of(stats.hitCount(), stats.missCount(), 0, 0, stats.loadSuccessCount(),
+        stats.loadExceptionCount(), stats.totalLoadTime(), stats.evictionCount(), 0);
     }
 
     @Override
@@ -288,37 +292,48 @@ public final class GuavaCacheFromContext {
       return (policy == null) ? (policy = new GuavaPolicy()) : policy;
     }
 
+    @Override
+    public void resetStats() {
+
+    }
+
     final class AsMapView extends ForwardingConcurrentMap<K, V> {
       @Override
       public boolean containsKey(Object key) {
         requireNonNull(key);
         return delegate().containsKey(key);
       }
+
       @Override
       public boolean containsValue(Object value) {
         requireNonNull(value);
         return delegate().containsValue(value);
       }
+
       @Override
       public V get(Object key) {
         requireNonNull(key);
         return delegate().get(key);
       }
+
       @Override
       public V remove(Object key) {
         requireNonNull(key);
         return delegate().remove(key);
       }
+
       @Override
       public boolean remove(Object key, Object value) {
         requireNonNull(key);
         return delegate().remove(key, value);
       }
+
       @Override
       public boolean replace(K key, V oldValue, V newValue) {
         requireNonNull(oldValue);
         return delegate().replace(key, oldValue, newValue);
       }
+
       @Override
       public V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
         requireNonNull(mappingFunction);
@@ -343,10 +358,11 @@ public final class GuavaCacheFromContext {
           throw e;
         }
       }
+
       @Override
       @SuppressWarnings("CheckReturnValue")
       public V computeIfPresent(K key,
-          BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+                                BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
         requireNonNull(remappingFunction);
         V oldValue;
         long now = ticker.read();
@@ -371,6 +387,7 @@ public final class GuavaCacheFromContext {
           return null;
         }
       }
+
       @Override
       @SuppressWarnings("CheckReturnValue")
       public V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
@@ -396,13 +413,14 @@ public final class GuavaCacheFromContext {
           throw e;
         }
       }
+
       @Override
       public V merge(K key, V value,
-          BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
+                     BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
         requireNonNull(remappingFunction);
         requireNonNull(value);
         V oldValue = get(key);
-        for (;;) {
+        for (; ; ) {
           if (oldValue != null) {
             long now = ticker.read();
             try {
@@ -428,10 +446,12 @@ public final class GuavaCacheFromContext {
           }
         }
       }
+
       @Override
       public Set<K> keySet() {
         return (keySet == null) ? (keySet = new KeySetView()) : keySet;
       }
+
       @Override
       protected ConcurrentMap<K, V> delegate() {
         return cache.asMap();
@@ -443,25 +463,33 @@ public final class GuavaCacheFromContext {
       }
 
       final class KeySetView extends ForwardingSet<K> {
-        @Override public boolean remove(Object o) {
+        @Override
+        public boolean remove(Object o) {
           requireNonNull(o);
           return delegate().remove(o);
         }
-        @Override protected Set<K> delegate() {
+
+        @Override
+        protected Set<K> delegate() {
           return cache.asMap().keySet();
         }
       }
     }
 
     final class GuavaPolicy implements Policy<K, V> {
-      @Override public boolean isRecordingStats() {
+      @Override
+      public boolean isRecordingStats() {
         return isRecordingStats;
       }
-      @Override public V getIfPresentQuietly(K key) {
+
+      @Override
+      public V getIfPresentQuietly(K key) {
         checkNotNull(key);
         return cache.asMap().get(key);
       }
-      @Override public CacheEntry<K, V> getEntryIfPresentQuietly(K key) {
+
+      @Override
+      public CacheEntry<K, V> getEntryIfPresentQuietly(K key) {
         checkNotNull(key);
         V value = cache.asMap().get(key);
         if (value == null) {
@@ -470,22 +498,34 @@ public final class GuavaCacheFromContext {
         long snapshotAt = canSnapshot ? ticker.read() : 0L;
         return new GuavaCacheEntry<>(key, value, snapshotAt);
       }
-      @Override public Map<K, CompletableFuture<V>> refreshes() {
+
+      @Override
+      public Map<K, CompletableFuture<V>> refreshes() {
         return Collections.unmodifiableMap(Collections.emptyMap());
       }
-      @Override public Optional<Eviction<K, V>> eviction() {
+
+      @Override
+      public Optional<Eviction<K, V>> eviction() {
         return Optional.empty();
       }
-      @Override public Optional<FixedExpiration<K, V>> expireAfterAccess() {
+
+      @Override
+      public Optional<FixedExpiration<K, V>> expireAfterAccess() {
         return Optional.empty();
       }
-      @Override public Optional<FixedExpiration<K, V>> expireAfterWrite() {
+
+      @Override
+      public Optional<FixedExpiration<K, V>> expireAfterWrite() {
         return Optional.empty();
       }
-      @Override public Optional<VarExpiration<K, V>> expireVariably() {
+
+      @Override
+      public Optional<VarExpiration<K, V>> expireVariably() {
         return Optional.empty();
       }
-      @Override public Optional<FixedRefresh<K, V>> refreshAfterWrite() {
+
+      @Override
+      public Optional<FixedRefresh<K, V>> refreshAfterWrite() {
         return Optional.empty();
       }
     }
@@ -570,7 +610,7 @@ public final class GuavaCacheFromContext {
     CompletableFuture<Map<K, V>> composeResult(Map<K, CompletableFuture<V>> futures) {
       if (futures.isEmpty()) {
         return CompletableFuture.completedFuture(
-            Collections.unmodifiableMap(Collections.emptyMap()));
+          Collections.unmodifiableMap(Collections.emptyMap()));
       }
       @SuppressWarnings("rawtypes")
       CompletableFuture<?>[] array = futures.values().toArray(new CompletableFuture[0]);
@@ -596,7 +636,8 @@ public final class GuavaCacheFromContext {
       this.weigher = com.github.benmanes.caffeine.cache.Weigher.boundedWeigher(weigher);
     }
 
-    @Override public int weigh(K key, V value) {
+    @Override
+    public int weigh(K key, V value) {
       return weigher.weigh(key, value);
     }
   }
@@ -608,7 +649,7 @@ public final class GuavaCacheFromContext {
     final boolean translateZeroExpire;
 
     GuavaRemovalListener(boolean translateZeroExpire,
-        com.github.benmanes.caffeine.cache.RemovalListener<K, V> delegate) {
+                         com.github.benmanes.caffeine.cache.RemovalListener<K, V> delegate) {
       this.translateZeroExpire = translateZeroExpire;
       this.delegate = delegate;
     }
@@ -682,7 +723,7 @@ public final class GuavaCacheFromContext {
   }
 
   static final class GuavaCacheEntry<K, V>
-      extends SimpleImmutableEntry<K, V> implements CacheEntry<K, V> {
+    extends SimpleImmutableEntry<K, V> implements CacheEntry<K, V> {
     private static final long serialVersionUID = 1L;
 
     private final long snapshot;
@@ -692,16 +733,23 @@ public final class GuavaCacheFromContext {
       this.snapshot = snapshot;
     }
 
-    @Override public int weight() {
+    @Override
+    public int weight() {
       return 1;
     }
-    @Override public long expiresAt() {
+
+    @Override
+    public long expiresAt() {
       return snapshot + Long.MAX_VALUE;
     }
-    @Override public long refreshableAt() {
+
+    @Override
+    public long refreshableAt() {
       return snapshot + Long.MAX_VALUE;
     }
-    @Override public long snapshotAt() {
+
+    @Override
+    public long snapshotAt() {
       return snapshot;
     }
   }

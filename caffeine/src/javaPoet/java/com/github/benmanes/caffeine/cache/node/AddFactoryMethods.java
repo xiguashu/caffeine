@@ -59,11 +59,11 @@ public final class AddFactoryMethods extends NodeRule {
     context.nodeSubtype.addMethod(
         newNode(keySpec, keyRefQueueSpec)
             .addStatement("return new $N<>(key, keyReferenceQueue, value, "
-                + "valueReferenceQueue, weight, now)", context.className)
+                + "valueReferenceQueue, weight, cost, now)", context.className)
             .build());
     context.nodeSubtype.addMethod(
         newNode(keyRefSpec)
-            .addStatement("return new $N<>(keyReference, value, valueReferenceQueue, weight, now)",
+            .addStatement("return new $N<>(keyReference, value, valueReferenceQueue, weight, cost, now)",
                 context.className)
             .build());
   }
@@ -107,6 +107,7 @@ public final class AddFactoryMethods extends NodeRule {
         .addParameter(valueSpec)
         .addParameter(valueRefQueueSpec)
         .addParameter(int.class, "weight")
+        .addParameter(double.class, "cost")
         .addParameter(long.class, "now")
         .returns(NODE);
   }

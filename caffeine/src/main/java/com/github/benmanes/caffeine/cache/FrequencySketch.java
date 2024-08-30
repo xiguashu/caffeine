@@ -17,7 +17,10 @@ package com.github.benmanes.caffeine.cache;
 
 import static com.github.benmanes.caffeine.cache.Caffeine.requireArgument;
 
+import com.github.benmanes.caffeine.cache.utils.HashUtils;
 import org.checkerframework.checker.index.qual.NonNegative;
+
+import java.util.Objects;
 
 /**
  * A probabilistic multiset for estimating the popularity of an element within a time window. The
@@ -71,12 +74,15 @@ final class FrequencySketch<E> {
   long[] table;
   int size;
 
+  BloomFilter bloomFilter = new BloomFilter();
+
   /**
    * Creates a lazily initialized frequency sketch, requiring {@link #ensureCapacity} be called
    * when the maximum size of the cache has been determined.
    */
   @SuppressWarnings("NullAway.Init")
-  public FrequencySketch() {}
+  public FrequencySketch() {
+  }
 
   /**
    * Initializes and increases the capacity of this {@code FrequencySketch} instance, if necessary,
@@ -92,6 +98,7 @@ final class FrequencySketch<E> {
       return;
     }
 
+    bloomFilter.ensureCapacity(maximumSize, 0.02);
     table = new long[Math.max(Caffeine.ceilingPowerOfTwo(maximum), 8)];
     sampleSize = (maximumSize == 0) ? 10 : (10 * maximum);
     blockMask = (table.length >>> 3) - 1;
@@ -120,6 +127,16 @@ final class FrequencySketch<E> {
     if (isNotInitialized()) {
       return 0;
     }
+    long hash64 = 0;
+    if (e instanceof String) {
+      hash64 = HashUtils.hash((String) e);
+    } else {
+      hash64 = Objects.hash(e);
+    }
+
+    if (!bloomFilter.mightContain(hash64)) {
+      return 0;
+    }
 
     int[] count = new int[4];
     int blockHash = spread(e.hashCode());
@@ -131,7 +148,7 @@ final class FrequencySketch<E> {
       int offset = h & 1;
       count[i] = (int) ((table[block + offset + (i << 1)] >>> (index << 2)) & 0xfL);
     }
-    return Math.min(Math.min(count[0], count[1]), Math.min(count[2], count[3]));
+    return Math.min(Math.min(count[0], count[1]), Math.min(count[2], count[3])) + 1;
   }
 
   /**
@@ -146,6 +163,17 @@ final class FrequencySketch<E> {
     if (isNotInitialized()) {
       return;
     }
+    long hash64 = 0;
+    if (e instanceof String) {
+      hash64 = HashUtils.hash((String) e);
+    } else {
+      hash64 = Objects.hash(e);
+    }
+
+    boolean newlyInsert = bloomFilter.put(hash64);
+    if (newlyInsert) {
+      return;
+    }
 
     int[] index = new int[8];
     int blockHash = spread(e.hashCode());
@@ -158,7 +186,7 @@ final class FrequencySketch<E> {
       index[i + 4] = block + offset + (i << 1);
     }
     boolean added =
-          incrementAt(index[4], index[0])
+      incrementAt(index[4], index[0])
         | incrementAt(index[5], index[1])
         | incrementAt(index[6], index[2])
         | incrementAt(index[7], index[3]);
@@ -168,7 +196,9 @@ final class FrequencySketch<E> {
     }
   }
 
-  /** Applies a supplemental hash function to defend against a poor quality hash. */
+  /**
+   * Applies a supplemental hash function to defend against a poor quality hash.
+   */
   static int spread(int x) {
     x ^= x >>> 17;
     x *= 0xed5ad4bb;
@@ -178,7 +208,9 @@ final class FrequencySketch<E> {
     return x;
   }
 
-  /** Applies another round of hashing for additional randomization. */
+  /**
+   * Applies another round of hashing for additional randomization.
+   */
   static int rehash(int x) {
     x *= 0x31848bab;
     x ^= x >>> 14;
@@ -202,7 +234,9 @@ final class FrequencySketch<E> {
     return false;
   }
 
-  /** Reduces every counter by half of its original value. */
+  /**
+   * Reduces every counter by half of its original value.
+   */
   void reset() {
     int count = 0;
     for (int i = 0; i < table.length; i++) {
